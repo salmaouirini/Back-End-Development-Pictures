@@ -1,4 +1,5 @@
 from . import app
+from . import routes
 import os
 import json
 from flask import jsonify, request, make_response, abort, url_for  # noqa; F401
@@ -6,6 +7,9 @@ from flask import jsonify, request, make_response, abort, url_for  # noqa; F401
 SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
 json_url = os.path.join(SITE_ROOT, "data", "pictures.json")
 data: list = json.load(open(json_url))
+
+
+
 
 ######################################################################
 # RETURN HEALTH OF THE APP
@@ -35,8 +39,8 @@ def count():
 ######################################################################
 @app.route("/picture", methods=["GET"])
 def get_pictures():
-    pass
-
+    return jsonify(data), 200
+    
 ######################################################################
 # GET A PICTURE
 ######################################################################
@@ -44,7 +48,11 @@ def get_pictures():
 
 @app.route("/picture/<int:id>", methods=["GET"])
 def get_picture_by_id(id):
-    pass
+    for picture in data:
+        if picture.get('id') == id:
+            return jsonify(picture), 200
+    return jsonify({"error": "Picture not found"}), 404
+
 
 
 ######################################################################
@@ -52,7 +60,11 @@ def get_picture_by_id(id):
 ######################################################################
 @app.route("/picture", methods=["POST"])
 def create_picture():
-    pass
+    new_picture = request.json
+    if any(picture.get('id') == new_picture.get('id') for picture in data):
+        return make_response(jsonify({"Message": f"picture with id {new_picture['id']} already present"}), 302)
+    data.append(new_picture)
+    return jsonify(new_picture), 201
 
 ######################################################################
 # UPDATE A PICTURE
@@ -61,11 +73,19 @@ def create_picture():
 
 @app.route("/picture/<int:id>", methods=["PUT"])
 def update_picture(id):
-    pass
+    updated_picture = request.json
+    picture_index = next((index for index, picture in enumerate(data) if picture.get('id') == id), None)
+    if picture_index is not None:
+        data[picture_index] = updated_picture
+    return jsonify({"message": "picture not found"}), 404
 
 ######################################################################
 # DELETE A PICTURE
 ######################################################################
 @app.route("/picture/<int:id>", methods=["DELETE"])
 def delete_picture(id):
-    pass
+    picture_index = next((index for index, picture in enumerate(data) if picture.get('id') == id), None)
+    if picture_index is not None:
+        data.remove(data[picture_index])   
+    return jsonify({"message": "picture not found"}), 404
+
